@@ -35,31 +35,27 @@
         <div id="result"></div>
     </div>
 
-    <script>
-        function previewFile() {
-            const file = document.getElementById('fileInput').files[0];
-            if (file) {
-                alert(`선택된 파일: ${file.name}\n위치 좌표 및 타임스탬프 추출 완료!`);
-            }
+  <script>
+    function analyzeImage() {
+        const fileInput = document.getElementById('fileInput');
+        const resultDiv = document.getElementById('result');
+        
+        if (fileInput.files.length === 0) {
+            alert('제보 사진을 먼저 등록해 주세요!');
+            return;
         }
 
-        function analyzeImage() {
-            const fileInput = document.getElementById('fileInput');
-            const resultDiv = document.getElementById('result');
-            
-            if (fileInput.files.length === 0) {
-                alert('제보할 강아지 사진을 먼저 등록해 주세요!');
-                return;
-            }
+        const fileName = fileInput.files[0].name;
 
-            resultDiv.style.display = 'block';
-            resultDiv.className = 'success';
-            resultDiv.innerHTML = `
-                <strong>✅ AI 분석 결과 (CNN 이진분류):</strong><br>
-                실종견 일치 확률 <strong>94.2%</strong> (정상 제보)<br>
-                <small>* 거리 이상치 필터링 통과 (수색 지도 반영 완료)</small>
-            `;
-        }
-    </script>
-</body>
-</html>
+        resultDiv.style.display = 'block';
+        resultDiv.className = 'success';
+        
+        // 업로드된 파일 이름을 보여주어 처리 과정을 시뮬레이션
+        resultDiv.innerHTML = `
+            <strong>✅ AI 분석 결과 (CNN 이진분류):</strong><br>
+            분석 대상: <i>${fileName}</i><br>
+            실종견 일치 확률 <strong>94.2%</strong> (정상 제보 판정)<br>
+            <small>* 거리 이상치 필터링 통과 (수색 지도 반영 완료)</small>
+        `;
+    }
+</script>
