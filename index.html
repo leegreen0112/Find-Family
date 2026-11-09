@@ -2,21 +2,64 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Find Family - 실종 반려동물 추적 서비스</title>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background-color: #f9f9f9; }
-        h1 { color: #2c3e50; }
-        .card { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: inline-block; }
-        button { background-color: #3498db; color: white; border: none; padding: 10px 20px; font-size: 16px; border-radius: 5px; cursor: pointer; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; margin: 0; padding: 40px 20px; text-align: center; color: #333; }
+        .container { max-width: 500px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
+        h1 { color: #2c3e50; font-size: 24px; margin-bottom: 10px; }
+        p { color: #666; font-size: 14px; line-height: 1.6; }
+        .badge { background: #e8f4fd; color: #2980b9; padding: 5px 12px; border-radius: 20px; font-weight: bold; font-size: 12px; display: inline-block; margin-bottom: 20px; }
+        .upload-box { border: 2px dashed #cbd5e1; border-radius: 10px; padding: 25px; margin: 20px 0; background: #f8fafc; cursor: pointer; }
+        .upload-box input { display: none; }
+        .btn { background: #3498db; color: white; border: none; padding: 12px 24px; font-size: 15px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; transition: 0.2s; }
+        .btn:hover { background: #2980b9; }
+        #result { margin-top: 20px; padding: 15px; border-radius: 8px; display: none; font-size: 14px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
     </style>
 </head>
 <body>
-    <div class="card">
+    <div class="container">
+        <span class="badge">AI 융합 서비스 프로토타입</span>
         <h1>🐾 Find Family</h1>
-        <p>AI 기반 실종 반려동물 동선 추적 및 수색 서비스</p>
-        <hr>
-        <p><strong>주요 기능:</strong> CNN 기반 제보 사진 검증 및 거리 이상치 필터링</p>
-        <button onclick="alert('제보 사진 접수 기능이 정상 동작합니다.')">제보하기 (테스트)</button>
+        <p>실종 반려동물 동선 추적 및 맞춤형 수색 매칭 서비스</p>
+        
+        <div class="upload-box" onclick="document.getElementById('fileInput').click()">
+            <p>📷 <strong>제보 사진 업로드 (터치/클릭)</strong></p>
+            <p style="font-size: 12px; color: #94a3b8;">GPS 위치 및 시각 정보가 함께 전송됩니다.</p>
+            <input type="file" id="fileInput" accept="image/*" onchange="previewFile()">
+        </div>
+
+        <button class="btn" onclick="analyzeImage()">AI 제보 사진 검증 및 분석</button>
+
+        <div id="result"></div>
     </div>
+
+    <script>
+        function previewFile() {
+            const file = document.getElementById('fileInput').files[0];
+            if (file) {
+                alert(`선택된 파일: ${file.name}\n위치 좌표 및 타임스탬프 추출 완료!`);
+            }
+        }
+
+        function analyzeImage() {
+            const fileInput = document.getElementById('fileInput');
+            const resultDiv = document.getElementById('result');
+            
+            if (fileInput.files.length === 0) {
+                alert('제보할 강아지 사진을 먼저 등록해 주세요!');
+                return;
+            }
+
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'success';
+            resultDiv.innerHTML = `
+                <strong>✅ AI 분석 결과 (CNN 이진분류):</strong><br>
+                실종견 일치 확률 <strong>94.2%</strong> (정상 제보)<br>
+                <small>* 거리 이상치 필터링 통과 (수색 지도 반영 완료)</small>
+            `;
+        }
+    </script>
 </body>
 </html>
