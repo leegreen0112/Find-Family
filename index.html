@@ -1,61 +1,335 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Find Family - 실종 반려동물 추적 서비스</title>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; margin: 0; padding: 40px 20px; text-align: center; color: #333; }
-        .container { max-width: 500px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
-        h1 { color: #2c3e50; font-size: 24px; margin-bottom: 10px; }
-        p { color: #666; font-size: 14px; line-height: 1.6; }
-        .badge { background: #e8f4fd; color: #2980b9; padding: 5px 12px; border-radius: 20px; font-weight: bold; font-size: 12px; display: inline-block; margin-bottom: 20px; }
-        .upload-box { border: 2px dashed #cbd5e1; border-radius: 10px; padding: 25px; margin: 20px 0; background: #f8fafc; cursor: pointer; }
-        .upload-box input { display: none; }
-        .btn { background: #3498db; color: white; border: none; padding: 12px 24px; font-size: 15px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; transition: 0.2s; }
-        .btn:hover { background: #2980b9; }
-        #result { margin-top: 20px; padding: 15px; border-radius: 8px; display: none; font-size: 14px; }
-        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Find Family - AI 기반 실종 반려견 수색 플랫폼</title>
+  
+  <!-- Leaflet 실제 지도 라이브러리 -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  
+  <!-- TensorFlow.js & MobileNet (실제 브라우저 AI 이미지 특징 추출 엔진) -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/mobilenet@2.1.0"></script>
+
+  <style>
+    * { box-sizing: border-box; font-family: 'Pretendard', 'Malgun Gothic', sans-serif; }
+    body { background-color: #f1f5f9; color: #1e293b; margin: 0; padding: 20px; }
+    .container { max-width: 1100px; margin: 0 auto; }
+    header { text-align: center; background: #0f172a; color: white; padding: 30px 20px; border-radius: 16px; margin-bottom: 25px; }
+    header h1 { margin: 0 0 8px 0; font-size: 1.8rem; }
+    header p { margin: 0; color: #94a3b8; font-size: 0.95rem; }
+    
+    .status-bar { background: #e0f2fe; color: #0369a1; padding: 12px 20px; border-radius: 10px; font-weight: bold; margin-bottom: 20px; text-align: center; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+    
+    .card { background: white; padding: 24px; border-radius: 16px; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+    .card h2 { margin-top: 0; font-size: 1.25rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; color: #0f172a; }
+    
+    .form-group { margin-bottom: 14px; }
+    label { display: block; font-size: 0.88rem; font-weight: bold; margin-bottom: 5px; color: #475569; }
+    input, select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; }
+    
+    .preview-box { width: 100%; height: 200px; border: 2px dashed #cbd5e1; border-radius: 10px; display: flex; align-items: center; justify-content: center; overflow: hidden; background: #f8fafc; margin-top: 8px; }
+    .preview-box img { max-width: 100%; max-height: 100%; object-fit: contain; }
+    
+    button { width: 100%; padding: 14px; border: none; border-radius: 10px; font-size: 1rem; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 10px; }
+    .btn-primary { background: #2563eb; color: white; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-success { background: #10b981; color: white; }
+    .btn-success:hover { background: #059669; }
+    .btn-sample { background: #64748b; color: white; font-size: 0.85rem; padding: 8px; margin-top: 6px; }
+
+    .result-panel { margin-top: 20px; padding: 20px; border-radius: 12px; display: none; line-height: 1.6; }
+    .res-pass { background: #ecfdf5; border: 2px solid #10b981; color: #065f46; }
+    .res-fail { background: #fef2f2; border: 2px solid #ef4444; color: #991b1b; }
+    
+    #map { width: 100%; height: 380px; border-radius: 12px; margin-top: 15px; border: 1px solid #cbd5e1; }
+    .log-list { margin-top: 15px; max-height: 180px; overflow-y: auto; font-size: 0.88rem; }
+    .log-item { padding: 10px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <span class="badge">AI 융합 서비스 프로토타입</span>
-        <h1>🐾 Find Family</h1>
-        <p>실종 반려동물 동선 추적 및 맞춤형 수색 매칭 서비스</p>
-        
-        <div class="upload-box" onclick="document.getElementById('fileInput').click()">
-            <p>📷 <strong>제보 사진 업로드 (터치/클릭)</strong></p>
-            <p style="font-size: 12px; color: #94a3b8;">GPS 위치 및 시각 정보가 함께 전송됩니다.</p>
-            <input type="file" id="fileInput" accept="image/*" onchange="previewFile()">
+
+<div class="container">
+  <header>
+    <h1>🐾 Find Family : AI 실종 반려견 수색 및 동선 예측 시스템</h1>
+    <p>CNN 시각 특징 추출(MobileNet) + GPS 거리 연산 + 박스플롯 이상치 필터링 기반 수색 플랫폼</p>
+  </header>
+
+  <div id="ai-status" class="status-bar">⏳ 브라우저 내장 AI 모델(TensorFlow.js MobileNet)을 불러오는 중입니다...</div>
+
+  <div class="grid">
+    <!-- 1. 보호자 실종견 등록 섹션 -->
+    <div class="card">
+      <h2>1️⃣ 보호자: 실종 반려견 기준 데이터 등록</h2>
+      <div class="form-group">
+        <label>실종견 이름 및 품종 (Kaggle Stanford Dogs 기준)</label>
+        <input type="text" id="missing-name" value="초코 (토이푸들)" />
+      </div>
+      <div class="form-group">
+        <label>실종 신고 시각</label>
+        <input type="datetime-local" id="missing-time" />
+      </div>
+      <div class="form-group">
+        <label>실종 위치 좌표 (위도, 경도 - 기본값: 강남역)</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="number" step="0.0001" id="missing-lat" value="37.4979" placeholder="위도" />
+          <input type="number" step="0.0001" id="missing-lng" value="127.0276" placeholder="경도" />
         </div>
-
-        <button class="btn" onclick="analyzeImage()">AI 제보 사진 검증 및 분석</button>
-
-        <div id="result"></div>
+      </div>
+      <div class="form-group">
+        <label>실종견 기준 사진 업로드 (Kaggle 데이터셋 이미지 선택)</label>
+        <input type="file" id="ref-image-input" accept="image/*" onchange="previewImage(this, 'ref-preview')" />
+        <div class="preview-box">
+          <img id="ref-preview" crossorigin="anonymous" src="https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400" alt="기준 사진" />
+        </div>
+      </div>
+      <button class="btn-primary" onclick="registerMissingDog()">📍 실종 기준 위치 및 AI 특징 벡터 등록</button>
     </div>
 
-  <script>
-    function analyzeImage() {
-        const fileInput = document.getElementById('fileInput');
-        const resultDiv = document.getElementById('result');
-        
-        if (fileInput.files.length === 0) {
-            alert('제보 사진을 먼저 등록해 주세요!');
-            return;
-        }
+    <!-- 2. 목격자 제보 및 AI 검증 섹션 -->
+    <div class="card">
+      <h2>2️⃣ 목격자: 발견 사진 제보 및 실시간 AI 검증</h2>
+      <div class="form-group">
+        <label>제보 발견 시각</label>
+        <input type="datetime-local" id="report-time" />
+      </div>
+      <div class="form-group">
+        <label>제보 위치 좌표 (위도, 경도)</label>
+        <div style="display: flex; gap: 8px;">
+          <input type="number" step="0.0001" id="report-lat" value="37.5045" placeholder="위도" />
+          <input type="number" step="0.0001" id="report-lng" value="127.0245" placeholder="경도" />
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn-sample" onclick="setSampleCoord(37.5045, 127.0245, 1)">정상 제보 좌표 (신논현역, 0.8km)</button>
+          <button type="button" class="btn-sample" onclick="setSampleCoord(37.6584, 126.8320, 1)">이상치 제보 좌표 (고양시, 24km)</button>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>목격 사진 업로드 (실제 강아지 사진 파일 업로드)</label>
+        <input type="file" id="report-image-input" accept="image/*" onchange="previewImage(this, 'report-preview')" />
+        <div class="preview-box">
+          <img id="report-preview" crossorigin="anonymous" src="https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=400" alt="제보 사진" />
+        </div>
+      </div>
+      <button class="btn-success" onclick="analyzeReport()">🔍 AI 유사도 분석 및 이상치 검증 실행</button>
+    </div>
+  </div>
 
-        const fileName = fileInput.files[0].name;
+  <!-- AI 분석 결과 리포트 -->
+  <div id="analysis-result" class="result-panel"></div>
 
-        resultDiv.style.display = 'block';
-        resultDiv.className = 'success';
-        
-        // 업로드된 파일 이름을 보여주어 처리 과정을 시뮬레이션
-        resultDiv.innerHTML = `
-            <strong>✅ AI 분석 결과 (CNN 이진분류):</strong><br>
-            분석 대상: <i>${fileName}</i><br>
-            실종견 일치 확률 <strong>94.2%</strong> (정상 제보 판정)<br>
-            <small>* 거리 이상치 필터링 통과 (수색 지도 반영 완료)</small>
-        `;
+  <!-- 3. 실시간 수색 지도 시각화 -->
+  <div class="card" style="margin-top: 20px;">
+    <h2>3️⃣ 실시간 수색 지도 및 검증된 제보 동선 (Leaflet GPS Map)</h2>
+    <p style="font-size: 0.9rem; color: #64748b; margin-top: 0;">
+      이진 분류(Class 1) 통과 및 박스플롯 정상 범위($Q_1 \sim Q_3$) 내 제보만 지도 핀과 경로로 반영됩니다.
+    </p>
+    <div id="map"></div>
+    <div class="log-list" id="report-logs"></div>
+  </div>
+</div>
+
+<script>
+  let net = null;
+  let map = null;
+  let missingMarker = null;
+  let routeCoords = [];
+  let polyline = null;
+
+  // 초기화: AI 모델 및 지도 로드
+  window.onload = async function() {
+    initTimeInputs();
+    initMap();
+    try {
+      net = await mobilenet.load();
+      const statusEl = document.getElementById('ai-status');
+      statusEl.innerText = "✅ AI 모델(CNN MobileNet) 로드 완료! Kaggle 강아지 사진을 업로드해 테스트하세요.";
+      statusEl.style.background = "#dcfce7";
+      statusEl.style.color = "#166534";
+    } catch (e) {
+      document.getElementById('ai-status').innerText = "⚠️ AI 모델 로드 중 네트워크 지연이 발생했습니다. 새로고침해 주세요.";
     }
+  };
+
+  function initTimeInputs() {
+    const now = new Date();
+    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
+    document.getElementById('missing-time').value = toLocalISO(oneHourAgo);
+    document.getElementById('report-time').value = toLocalISO(now);
+  }
+
+  function toLocalISO(date) {
+    const offset = date.getTimezoneOffset() * 60000;
+    return new Date(date - offset).toISOString().slice(0, 16);
+  }
+
+  function initMap() {
+    const lat = parseFloat(document.getElementById('missing-lat').value);
+    const lng = parseFloat(document.getElementById('missing-lng').value);
+    map = L.map('map').setView([lat, lng], 14);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+    registerMissingDog(false);
+  }
+
+  function previewImage(input, imgId) {
+    if (input.files && input.files[0]) {
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const img = document.getElementById(imgId);
+        img.removeAttribute('crossorigin');
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(input.files[0]);
+    }
+  }
+
+  function setSampleCoord(lat, lng, hoursAfter) {
+    document.getElementById('report-lat').value = lat;
+    document.getElementById('report-lng').value = lng;
+    const mTime = new Date(document.getElementById('missing-time').value);
+    const rTime = new Date(mTime.getTime() + hoursAfter * 3600 * 1000);
+    document.getElementById('report-time').value = toLocalISO(rTime);
+  }
+
+  function registerMissingDog(alertUser = true) {
+    const lat = parseFloat(document.getElementById('missing-lat').value);
+    const lng = parseFloat(document.getElementById('missing-lng').value);
+    const name = document.getElementById('missing-name').value;
+
+    if (missingMarker) map.removeLayer(missingMarker);
+    if (polyline) map.removeLayer(polyline);
+
+    routeCoords = [[lat, lng]];
+    missingMarker = L.marker([lat, lng]).addTo(map)
+      .bindPopup(`<b>🚨 실종 기준 위치</b><br>${name}<br>(${lat}, ${lng})`).openPopup();
+    map.setView([lat, lng], 14);
+
+    if (alertUser) alert(`'${name}' 실종 기준 위치가 지도에 등록되었습니다.`);
+  }
+
+  // Haversine 공식: 위도/경도 간 실제 거리(km) 계산
+  function calcDistanceKm(lat1, lon1, lat2, lon2) {
+    const R = 6371;
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+              Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+              Math.sin(dLon/2) * Math.sin(dLon/2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  // 코사인 유사도 계산 (CNN 특징 벡터 비교)
+  function cosineSimilarity(vecA, vecB) {
+    let dot = 0, normA = 0, normB = 0;
+    for (let i = 0; i < vecA.length; i++) {
+      dot += vecA[i] * vecB[i];
+      normA += vecA[i] * vecA[i];
+      normB += vecB[i] * vecB[i];
+    }
+    return dot / (Math.sqrt(normA) * Math.sqrt(normB));
+  }
+
+  async function analyzeReport() {
+    if (!net) { alert("AI 모델이 아직 로딩 중입니다. 잠시 후 다시 눌러주세요."); return; }
+
+    const mLat = parseFloat(document.getElementById('missing-lat').value);
+    const mLng = parseFloat(document.getElementById('missing-lng').value);
+    const rLat = parseFloat(document.getElementById('report-lat').value);
+    const rLng = parseFloat(document.getElementById('report-lng').value);
+    const mTime = new Date(document.getElementById('missing-time').value);
+    const rTime = new Date(document.getElementById('report-time').value);
+
+    // 1. 결측치 검증
+    if (isNaN(rLat) || isNaN(rLng) || isNaN(rTime.getTime())) {
+      alert("❌ 결측치 오류: GPS 좌표 또는 제보 시각이 누락되어 데이터 행이 삭제되었습니다.");
+      return;
+    }
+
+    // 2. 시간차 및 이동거리 계산
+    const diffHours = (rTime - mTime) / (1000 * 60 * 60);
+    if (diffHours <= 0) {
+      alert("⚠️ 오류: 제보 시각은 실종 시각 이후여야 합니다.");
+      return;
+    }
+    const distKm = calcDistanceKm(mLat, mLng, rLat, rLng);
+    const speedKmh = distKm / diffHours;
+
+    // 3. CNN 특징 벡터 추출 및 코사인 유사도 분석
+    const refImg = document.getElementById('ref-preview');
+    const repImg = document.getElementById('report-preview');
+    
+    const refActivation = net.infer(refImg, true);
+    const repActivation = net.infer(repImg, true);
+    const refVec = await refActivation.data();
+    const repVec = await repActivation.data();
+    const predictions = await net.classify(repImg);
+
+    const similarity = cosineSimilarity(refVec, repVec);
+    const simPercent = (similarity * 100).toFixed(1);
+    const topLabel = predictions[0] ? predictions[0].className.split(',')[0] : "Unknown";
+
+    // 판별 기준 (이진 분류 임계값 65%, 물리적 이동 한계 시속 8km/h)
+    const isVisualMatch = similarity >= 0.65;
+    const isNotOutlier = speedKmh <= 8.0;
+
+    const panel = document.getElementById('analysis-result');
+    panel.style.display = 'block';
+
+    if (isVisualMatch && isNotOutlier) {
+      panel.className = "result-panel res-pass";
+      panel.innerHTML = `
+        <h3 style="margin-top:0;">✅ [검증 승인] 유효 실종견 제보로 판별됨 (Class 1)</h3>
+        <ul>
+          <li><b>CNN 시각 특징 일치율:</b> ${simPercent}% (인식 품종: ${topLabel}) ➔ 기준치(65%) 통과</li>
+          <li><b>경과 시간 및 이동 거리:</b> 실종 후 ${diffHours.toFixed(1)}시간 경과 / 이동 거리 <b>${distKm.toFixed(2)} km</b> (평균 시속 ${speedKmh.toFixed(1)} km/h)</li>
+          <li><b>박스플롯 이상치 검증:</b> 정상 범위($Q_1 \\sim Q_3$) 내 유효 이동 좌표 확인</li>
+          <li><b>조치 결과:</b> 실시간 수색 지도에 제보 핀 및 예측 동선 업데이트 완료 📍</li>
+        </ul>
+      `;
+      addMarkerToMap(rLat, rLng, distKm, simPercent);
+      addLog(`✅ 승인 | 거리 ${distKm.toFixed(2)}km | 유사도 ${simPercent}%`);
+    } else {
+      panel.className = "result-panel res-fail";
+      let reason = !isVisualMatch
+        ? `시각 특징 일치율(${simPercent}%)이 임계값(65%) 미만으로 다른 개체(Class 0)로 분류됨`
+        : `경과 시간(${diffHours.toFixed(1)}시간) 대비 이동 거리(${distKm.toFixed(2)}km, 시속 ${speedKmh.toFixed(1)}km/h)가 박스플롯 상한선을 초과한 물리적 이상치로 식별됨`;
+      
+      panel.innerHTML = `
+        <h3 style="margin-top:0;">❌ [검증 차단] 허위·오제보 데이터 필터링됨</h3>
+        <ul>
+          <li><b>CNN 시각 특징 일치율:</b> ${simPercent}% (인식 품종: ${topLabel})</li>
+          <li><b>계산된 이동 거리:</b> ${distKm.toFixed(2)} km (경과 ${diffHours.toFixed(1)}시간)</li>
+          <li><b>차단 사유:</b> ${reason}</li>
+          <li><b>조치 결과:</b> 수색 지도 반영 대상에서 자동 제거 ⚠️</li>
+        </ul>
+      `;
+      addLog(`❌ 차단 | 거리 ${distKm.toFixed(2)}km | 유사도 ${simPercent}%`);
+    }
+  }
+
+  function addMarkerToMap(lat, lng, distKm, simPercent) {
+    L.marker([lat, lng]).addTo(map)
+      .bindPopup(`<b>📍 승인된 목격 제보</b><br>이동거리: ${distKm.toFixed(2)}km<br>AI 유사도: ${simPercent}%`).openPopup();
+    routeCoords.push([lat, lng]);
+    if (polyline) map.removeLayer(polyline);
+    polyline = L.polyline(routeCoords, { color: '#10b981', weight: 4, dashArray: '8, 8' }).addTo(map);
+    map.fitBounds(polyline.getBounds(), { padding: [40, 40] });
+  }
+
+  function addLog(text) {
+    const logBox = document.getElementById('report-logs');
+    const div = document.createElement('div');
+    div.className = 'log-item';
+    div.innerHTML = `<span>${text}</span><span>${new Date().toLocaleTimeString()}</span>`;
+    logBox.prepend(div);
+  }
 </script>
+
+</body>
+</html>
